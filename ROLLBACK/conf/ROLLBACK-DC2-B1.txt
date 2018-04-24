@@ -1,0 +1,125 @@
+!#####################################################################################	   
+! Rollback:	   /!\ à mettre dans un ficher distinct dans la section rollback de la DMEP .doc
+!####################################################################################	   
+!	   
+!--------------------------------------------------------	   
+! Step 1 DC2-B1: Rollback Peerings BGP and Interfacy policy map on all Interconexion	   
+!--------------------------------------------------------
+
+show configuration commit list detail | utility egrep 'Comment:  JUMP-Ticket:Interface Description' -B 4
+
+! Find the rollback ID from the last command
+
+show configuration commit changes <commit-id>
+
+! It will show the configuration of Interface description change
+! If that is the case do the rollback with the commit ID
+
+rollback configuration <commit-id> comment JUMP-Ticket:rollback
+
+!********************************************************	   
+Checks DC2-B1
+!********************************************************	   
+!
+!
+show ip int brief | in Gi0/7/1/5
+!
+show interfaces Gi0/7/1/5 | in errors
+!
+ 
+sh bgp vrf all summary | in 192.2.39.22
+!
+ 
+sh bgp vrf all summary | in 192.2.172.37
+!
+ 
+sh bgp vrf all summary | in 192.2.181.65
+!
+ 
+sh bgp vrf all summary | in 192.2.197.74
+!
+ 
+sh bgp vrf all summary | in 192.2.21.65
+!
+ 
+sh bgp vrf all summary | in 192.2.141.65
+!
+ 
+sh bgp vrf all summary | in 192.2.248.190
+!
+ 
+ 
+sh bgp vrf all summary | in 192.2.31.65
+!
+!
+!
+!
+!
+
+sh bgp vrf RVP_LEGACYSURETE neighbors 192.2.39.22 routes 
+!
+sh bgp vrf RVP_LEGACYSURETE neighbors 192.2.39.22 routes | in Processed
+!
+sh bgp vrf RVP_LEGACYSURETE neighbors 192.2.39.22 advertised-routes
+!
+sh bgp vrf RVP_LEGACYSURETE neighbors 192.2.39.22 advertised-count
+
+sh bgp vrf RVP_SURETE neighbors 192.2.172.37 routes 
+!
+sh bgp vrf RVP_SURETE neighbors 192.2.172.37 routes | in Processed
+!
+sh bgp vrf RVP_SURETE neighbors 192.2.172.37 advertised-routes
+!
+sh bgp vrf RVP_SURETE neighbors 192.2.172.37 advertised-count
+
+sh bgp vrf RVP_ITEC neighbors 192.2.181.65 routes 
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.65 routes | in Processed
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.65 advertised-routes
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.65 advertised-count
+
+sh bgp vrf RVP_WIFI neighbors 192.2.197.74 routes 
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.74 routes | in Processed
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.74 advertised-routes
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.74 advertised-count
+
+sh bgp vrf RIX neighbors 192.2.21.65 routes 
+!
+sh bgp vrf RIX neighbors 192.2.21.65 routes | in Processed
+!
+sh bgp vrf RIX neighbors 192.2.21.65 advertised-routes
+!
+sh bgp vrf RIX neighbors 192.2.21.65 advertised-count
+
+sh bgp vrf RVP_GTB neighbors 192.2.141.65 routes 
+!
+sh bgp vrf RVP_GTB neighbors 192.2.141.65 routes | in Processed
+!
+sh bgp vrf RVP_GTB neighbors 192.2.141.65 advertised-routes
+!
+sh bgp vrf RVP_GTB neighbors 192.2.141.65 advertised-count
+
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.248.190 routes 
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.248.190 routes | in Processed
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.248.190 advertised-routes
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.248.190 advertised-count
+
+sh bgp vrf RDS neighbors 192.2.31.65 routes 
+!
+sh bgp vrf RDS neighbors 192.2.31.65 routes | in Processed
+!
+sh bgp vrf RDS neighbors 192.2.31.65 advertised-routes
+!
+sh bgp vrf RDS neighbors 192.2.31.65 advertised-count
+!
+!
+
+

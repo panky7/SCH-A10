@@ -1,0 +1,7 @@
+---
+- name: Generate configuration files
+  template: src=rollback.j2 dest=/Users/JANINE/SCH-A10/ROLLBACK/conf/ROLLBACK-{{item.hostname}}.txt
+  with_items: "{{ routers }}"
+   
+
+

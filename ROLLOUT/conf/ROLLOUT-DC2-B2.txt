@@ -1,0 +1,412 @@
+!--------------------------------------------------------	 
+!PRE-Check DC2-B2: Step 0 Capture the O/P of the below commands for comparison after the change
+!--------------------------------------------------------	
+!
+show ip int brief | in Gi0/7/1/3
+!
+show interfaces Gi0/7/1/3 | in errors
+!
+ 
+sh bgp vrf all summary | in 192.2.181.41
+!
+ 
+sh bgp vrf all summary | in 192.2.246.94
+!
+ 
+sh bgp vrf all summary | in 192.2.33.73
+!
+ 
+ 
+sh bgp vrf all summary | in 192.2.197.106
+!
+!
+!
+!
+!
+
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 routes 
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 routes | in Processed
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 advertised-routes
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 advertised-count
+
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 routes 
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 routes | in Processed
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 advertised-routes
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 advertised-count
+
+sh bgp vrf RDS neighbors 192.2.33.73 routes 
+!
+sh bgp vrf RDS neighbors 192.2.33.73 routes | in Processed
+!
+sh bgp vrf RDS neighbors 192.2.33.73 advertised-routes
+!
+sh bgp vrf RDS neighbors 192.2.33.73 advertised-count
+
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 routes 
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 routes | in Processed
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 advertised-routes
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 advertised-count
+!
+!#####################################################################################	 
+!Step 1A Rollout:DC2-B2 => change the description of  sub-interfaces for DC2RTRWEBCELLA2-P1
+!####################################################################################	 
+!
+!
+interface Gi0/7/1/3
+ description FED_DC2RTRWEBCELLA2-P1_Eth1/1_10G
+!
+interface Gi0/7/1/3.2303
+ description FED_RVP_ITEC_DC2RTRWEBCELLA2-P1_Eth1/1_10G
+interface Gi0/7/1/3.2801
+ description FED_RVP_SHAREDSERVICES_DC2RTRWEBCELLA2-P1_Eth1/1_10G
+interface Gi0/7/1/3.2190
+ description FED_RDS_DC2RTRWEBCELLA2-P1_Eth1/1_10G
+interface Gi0/7/1/3.2087
+ description FED_DC2RTRWEBCELLA2-P1_Eth1/1_10G
+interface Gi0/7/1/3.2290
+ description FED_RVP_WIFI_DC2RTRWEBCELLA2-P1_Eth1/1_10G
+!
+!
+commit comment JUMP-TICKET:Interface Description
+!
+!--------------------------------------------------------	 
+!DC2-B2 Shut down the BGP peerings and change the description for all the peers with VRF 
+!--------------------------------------------------------
+!
+router bgp 64911
+!
+!
+vrf RVP_ITEC
+neighbors 192.2.181.41
+description RVP_ITEC_DC2RTRWEBCELLA2-P1
+bfd fast-detect
+bfd multiplier 3
+bfd minimim-interval 500
+shutdown
+!
+!
+vrf RVP_SHAREDSERVICES
+neighbors 192.2.246.94
+description RVP_SHAREDSERVICES_DC2RTRWEBCELLA2-P1
+bfd fast-detect
+bfd multiplier 3
+bfd minimim-interval 500
+shutdown
+!
+!
+vrf RDS
+neighbors 192.2.33.73
+description RDS_DC2RTRWEBCELLA2-P1
+bfd fast-detect
+bfd multiplier 3
+bfd minimim-interval 500
+shutdown
+!
+!
+vrf RVP_WIFI
+neighbors 192.2.197.106
+description RVP_WIFI_DC2RTRWEBCELLA2-P1
+bfd fast-detect
+bfd multiplier 3
+bfd minimim-interval 500
+shutdown
+!
+!
+commit comment JUMP-TICKET:BGP Description
+!
+!--------------------------------------------------------
+!DC2-B2: Shutdown the PE<=>CE  interface
+!--------------------------------------------------------
+!
+interface Gi0/7/1/3
+shutdown
+!
+interface Gi0/7/1/3.2303
+shutdown
+!
+interface Gi0/7/1/3.2801
+shutdown
+!
+interface Gi0/7/1/3.2190
+shutdown
+!
+interface Gi0/7/1/3.2087
+shutdown
+!
+interface Gi0/7/1/3.2290
+shutdown
+!
+!
+commit comment JUMP-TICKET: Interface shutdown
+!********************************************************	   
+!Checks-DC2-B2	   
+!********************************************************
+
+!
+show ip int brief | in Gi0/7/1/3
+!
+show interfaces Gi0/7/1/3 | in errors
+!
+ 
+sh bgp vrf all summary | in 192.2.181.41
+!
+ 
+sh bgp vrf all summary | in 192.2.246.94
+!
+ 
+sh bgp vrf all summary | in 192.2.33.73
+!
+ 
+ 
+sh bgp vrf all summary | in 192.2.197.106
+!
+!
+!==> Quick Double-check that neighbors are down
+!
+!
+! ==> Note: BFD is not supported Vlan: All Vlan interface must be deleted and recreated as sub interfaces
+!
+! interface Ten or GigabitEthernet
+!
+! a) Check the description format: FED_<VRF NAME>_<CE NAME>_SxPx_BW_TELCO_NUMBER
+! B) If TElco Link add: dampening 
+! C) If not native speed: bandwidth x00000
+! C) logging event link-status
+! D) Check the correct WRR
+!
+!sub-interface Ten or GigabitEthernet.wxyz
+!
+! a) Check the description format: FED_<VRF NAME>_<CE NAME>_SxPx_BW
+! B) Add if missIN ing: no ip redirects,no ip unreachables, no ip proxy-arp
+! C) Add BFD: bfd  interval 500 min_rx 500 multiplier 3 /!\ for Etherchannels: bfd interval 750 min_rx 750 multiplier 3
+!
+!#####################################################################################
+! Step 3 Rollout Standardisation :DC2-B2
+! ####################################################################################
+!	 
+!
+!--------------------------------------------------------
+! DC2-B2: interface Standardisation:
+!--------------------------------------------------------
+!
+interface Gi0/7/1/3
+ service-policy input 1GE_PMAP_IN 
+ service-policy output 1GE_PMAP_OUT
+!
+interface Gi0/7/1/3.2303
+service-policy input 1GE_PMAP_IN 
+service-policy output 1GE_PMAP_OUT 
+ipv4 unreachables disable
+!
+interface Gi0/7/1/3.2801
+service-policy input 1GE_PMAP_IN 
+service-policy output 1GE_PMAP_OUT 
+ipv4 unreachables disable
+!
+interface Gi0/7/1/3.2190
+service-policy input 1GE_PMAP_IN 
+service-policy output 1GE_PMAP_OUT 
+ipv4 unreachables disable
+!
+interface Gi0/7/1/3.2087
+service-policy input 1GE_PMAP_IN 
+service-policy output 1GE_PMAP_OUT 
+ipv4 unreachables disable
+!
+interface Gi0/7/1/3.2290
+service-policy input 1GE_PMAP_IN 
+service-policy output 1GE_PMAP_OUT 
+ipv4 unreachables disable
+!
+!
+commit comment JUMP-TICKET: Interface standarization
+!
+!--------------------------------------------------------
+! DC2-B2 eBGP with RED or BLUE Plan + BFD (Option 1 without static Metrics) and remove the existing route-maps if any
+!--------------------------------------------------------
+!
+!
+route-policy eBGP:RED-PLAN-FROM-AS64912:IN 
+ pass
+# Empty to be used for manual switchover
+end-policy
+!
+!
+extcommunity-set rt comm_96
+  64912:9999
+end-set
+!
+route-policy eBGP:RED-PLAN-TO-AS64912:OUT
+  if (extcommunity rt matches-any comm_96) then
+    prepend as-path 64911 5
+  else
+   pass
+  endif
+end-policy
+!
+!
+router bgp 64911
+!
+vrf RVP_ITEC
+neighbors 192.2.181.41
+address-family ipv4 unicast
+route-policy eBGP:RED-PLAN-from-AS664912:IN in
+route-policy eBGP:RED-PLAN-to-AS64912:OUT out
+!
+vrf RVP_SHAREDSERVICES
+neighbors 192.2.246.94
+address-family ipv4 unicast
+route-policy eBGP:RED-PLAN-from-AS664912:IN in
+route-policy eBGP:RED-PLAN-to-AS64912:OUT out
+!
+vrf RDS
+neighbors 192.2.33.73
+address-family ipv4 unicast
+route-policy eBGP:RED-PLAN-from-AS664912:IN in
+route-policy eBGP:RED-PLAN-to-AS64912:OUT out
+!
+vrf RVP_WIFI
+neighbors 192.2.197.106
+address-family ipv4 unicast
+route-policy eBGP:RED-PLAN-from-AS664912:IN in
+route-policy eBGP:RED-PLAN-to-AS64912:OUT out
+!
+!
+!
+commit comment JUMP-TICKET:BGP Standarization
+!
+!#####################################################################################
+! Step 4 Rollout PE-CE IN interconnection reactivation
+!####################################################################################
+!
+!--------------------------------------------------------	 
+! DC2-B2: Enable the PE<=>CE interface
+!--------------------------------------------------------
+!	 
+interface Gi0/7/1/3
+ no shutdown
+!
+interface Gi0/7/1/3.2303
+ no shutdown
+!
+interface Gi0/7/1/3.2801
+ no shutdown
+!
+interface Gi0/7/1/3.2190
+ no shutdown
+!
+interface Gi0/7/1/3.2087
+ no shutdown
+!
+interface Gi0/7/1/3.2290
+ no shutdown
+!
+!
+commit Jump Ticket: No shutdown Interface
+! 
+!********************************************************	 
+!Checks DC2-B2
+!********************************************************	
+!
+!
+show ip int brief | in Gi0/7/1/3
+!
+show interfaces Gi0/7/1/3 | in errors
+!
+!--------------------------------------------------------	 
+!DC2-B2: Enable all eBGPS peerings for all the interconnections' VRF
+!--------------------------------------------------------	 
+!
+!
+router bgp 64911
+!
+vrf RVP_ITEC
+neighbors 192.2.181.41
+no shutdown
+!
+vrf RVP_SHAREDSERVICES
+neighbors 192.2.246.94
+no shutdown
+!
+vrf RDS
+neighbors 192.2.33.73
+no shutdown
+!
+vrf RVP_WIFI
+neighbors 192.2.197.106
+no shutdown
+!
+!
+commit comment JUMP-TICKET:BGP no-shutdown
+!
+!********************************************************	 
+!Post Checks PE DC2-B2
+!********************************************************	 
+!	 
+!
+!==> Quick Double-check no error on the interfaces 
+!
+!
+show ip int brief | in Gi0/7/1/3
+!
+show interfaces Gi0/7/1/3 | in errors
+!
+ 
+sh bgp vrf all summary | in 192.2.181.41
+!
+ 
+sh bgp vrf all summary | in 192.2.246.94
+!
+ 
+sh bgp vrf all summary | in 192.2.33.73
+!
+ 
+ 
+sh bgp vrf all summary | in 192.2.197.106
+!
+!
+!
+!
+!
+
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 routes 
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 routes | in Processed
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 advertised-routes
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 advertised-count
+
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 routes 
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 routes | in Processed
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 advertised-routes
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 advertised-count
+
+sh bgp vrf RDS neighbors 192.2.33.73 routes 
+!
+sh bgp vrf RDS neighbors 192.2.33.73 routes | in Processed
+!
+sh bgp vrf RDS neighbors 192.2.33.73 advertised-routes
+!
+sh bgp vrf RDS neighbors 192.2.33.73 advertised-count
+
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 routes 
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 routes | in Processed
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 advertised-routes
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 advertised-count
+!

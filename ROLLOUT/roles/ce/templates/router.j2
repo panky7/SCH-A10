@@ -1,0 +1,179 @@
+!--------------------------------------------------------	 
+!PRE-Check {{item.hostname}}: Step 0 Capture the O/P of the below commands for comparison after the change
+!--------------------------------------------------------
+!
+sh int status | in {{item.main_interface}}
+!
+show interfaces {{item.main_interface}} | in error
+!
+{% for int, cfd in item.sub_int.items() %} 
+{% if cfd.nei is defined %}
+sh bgp vrf all summary | in {{ cfd.nei }}
+!
+{% endif %}
+{% endfor %}
+!
+!
+!
+!-------------------------------------------------------- 
+! {{item.hostname}}: Shutdown the PE<=>CE interface 
+!-------------------------------------------------------- 
+
+interface {{item.main_interface}}
+shutdown
+!
+{% for int, cfd in item.sub_int.items() %} 
+{% if cfd.vlan is defined %}
+no interface vlan {{ cfd.vlan }}
+!
+{% else %}
+interface {{ int }}
+shutdown
+!
+!
+{% endif %}
+{% endfor %}
+!
+!##################################################################################### 
+! Step 1B Rollout : {{item.hostname}}==>CE-PE interconnection isolation if replacing Vlans interface by sub-interfaces
+!#################################################################################### 
+ 
+!-------------------------------------------------------- 
+! {{item.hostname}}: change the interface description and configure sub-interface
+!-------------------------------------------------------- 
+!
+!
+interface {{item.main_interface}}
+ description FED_{{item.PE}}_{{item.PE_interface}}_{{item.speed}}
+!
+
+{% for int, cfd in item.sub_int.items() %}
+interface {{ int }}
+{% if cfd.vrf is defined %}
+ description FED_{{ cfd.vrf }}_{{item.PE}}_{{item.PE_interface}}_{{item.speed}}
+ vrf member {{ cfd.vrf }}
+{% else %}
+ description FED_ADMIN_{{item.PE}}_{{item.PE_interface}}_{{item.speed}}
+{% endif %}
+{% if cfd.vlan is defined %}
+encapsulation dot1q {{ cfd.vlan }}
+logging event port link-status
+no ip redirects
+ip address {{ cfd.ip }}
+no ipv6 redirects
+{% endif %}
+{% endfor %}
+!
+!
+end
+copy running-config startup-config 
+
+
+!******************************************************** 
+ {{item.hostname}}: Checks 
+!******************************************************** 
+!Check if the BFD feature is enable
+show feature | include bfd
+!
+!##################################################################################### 
+! Step 2 Rollout Standardisation :{{item.hostname}}
+!#################################################################################### 
+!
+!--------------------------------------------------------
+!{{item.hostname}}: interface Standardisation:
+!--------------------------------------------------------
+!
+! ==> Note: BFD is not supported Vlan: All Vlan interface must be deleted and recreated as sub interfaces
+!
+! interface Ten or GigabitEthernet
+!
+! a) Check the description format: FED_<VRF NAME>_<CE NAME>_SxPx_BW_TELCO_NUMBER
+! B) If TElco Link add: dampening 
+! C) If not native speed: bandwidth x00000
+! C) logging event link-status
+! D) Check the correct WRR
+!
+!sub-interface Ten or GigabitEthernet.wxyz
+!
+! a) Check the description format: FED_<VRF NAME>_<CE NAME>_SxPx_BW
+! B) Add if missIN ing: no ip redirects,no ip unreachables, no ip proxy-arp
+! C) Add BFD: bfd  interval 500 min_rx 500 multiplier 3 /!\ for Etherchannels: bfd interval 750 min_rx 750 multiplier 3
+!
+interface {{item.main_interface}}
+ !
+!
+{% for int, cfd in item.sub_int.items() %}
+interface {{ int }}
+ no ip redirects 
+ no ip unreachables 
+ no ip proxy-arp 
+ bfd interval 500 min_rx 500 multiplier 3
+!
+{% endfor %}
+!
+!--------------------------------------------------------
+! {{item.hostname}}: Update all the eBGP peers eBGP
+!--------------------------------------------------------
+!
+! a) Check the description format: eBGP <PE name>_<VRF name>>
+! B) Add if missing: neighbor <PE IP@> fall-over bfd
+! C) Delete route-maps set metrics when possible /!\ to be confirmed with HSG\MBS
+! D) Add the per neighbor route-maps for plan selection Option 1 (without static Metric) or Option 2 (static Metrics)
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.nei is defined %}
+router bgp 64923
+!
+vrf {{ cfd.vrf }}
+address-family ipv4 unicast
+neighbors {{ cfd.nei }} remote-as 64911 
+bfd
+description {{ cfd.vrf }}_{{item.PE}}
+!
+{% endif %}
+{% endfor %}
+! 
+
+   
+ 
+### The neibhor description is not as per standard #### 
+
+!--------------------------------------------------------
+! {{item.hostname}}: Update all the eBGP peers eBGP
+!--------------------------------------------------------
+!#####################################################################################
+! Step 4 Rollout PE-CE IN interconnection reactivation
+! ####################################################################################
+!
+!--------------------------------------------------------	 
+!  {{item.hostname}}: Enable the PE<=>CE interface
+!--------------------------------------------------------
+!	
+!	 
+interface {{item.main_interface}}
+ no shutdown
+!
+{% for int, cfd in item.sub_int.items() %}
+interface {{ int }}
+ no shutdown
+!
+{% endfor %}
+! 
+copy running config startup-config
+#######################################################################
+# Post Checks CE {{item.hostname}}
+####################################################################### 
+
+!
+sh int status | in {{item.main_interface}}
+!
+show interfaces {{item.main_interface}} | in error
+!
+{% for int, cfd in item.sub_int.items() %} 
+{% if cfd.nei is defined %}
+sh bgp vrf all summary | in {{ cfd.nei }}
+!
+{% endif %}
+{% endfor %}
+!
+!

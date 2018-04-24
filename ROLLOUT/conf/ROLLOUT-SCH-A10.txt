@@ -1,0 +1,257 @@
+!--------------------------------------------------------	 
+!PRE-Check SCH-A10: Step 0 Capture the O/P of the below commands for comparison after the change
+!--------------------------------------------------------
+!
+sh int status | in Gi5/1
+!
+show interfaces Gi5/1 | in error
+!
+ 
+sh bgp vrf all summary | in 192.2.246.93
+!
+ 
+sh bgp vrf all summary | in 192.2.181.42
+!
+ 
+sh bgp vrf all summary | in 192.2.197.105
+!
+ 
+ 
+sh bgp vrf all summary | in 192.2.33.74
+!
+!
+!
+!
+!-------------------------------------------------------- 
+! SCH-A10: Shutdown the PE<=>CE interface 
+!-------------------------------------------------------- 
+
+interface Gi5/1
+shutdown
+!
+ 
+interface Gi5/1.2801
+shutdown
+!
+!
+ 
+interface Gi5/1.2303
+shutdown
+!
+!
+ 
+interface Gi5/1.2290
+shutdown
+!
+!
+ 
+interface Gi5/1.2087
+shutdown
+!
+!
+ 
+interface Gi5/1.2190
+shutdown
+!
+!
+!
+!##################################################################################### 
+! Step 1B Rollout : SCH-A10==>CE-PE interconnection isolation if replacing Vlans interface by sub-interfaces
+!#################################################################################### 
+ 
+!-------------------------------------------------------- 
+! SCH-A10: change the interface description and configure sub-interface
+!-------------------------------------------------------- 
+!
+!
+interface Gi5/1
+ description FED_DC2-B1_Gi0/7/1/3_1G
+!
+
+interface Gi5/1.2801
+ description FED_RVP_SHAREDSERVICES_DC2-B1_Gi0/7/1/3_1G
+ vrf member RVP_SHAREDSERVICES
+interface Gi5/1.2303
+ description FED_RVP_ITEC_DC2-B1_Gi0/7/1/3_1G
+ vrf member RVP_ITEC
+interface Gi5/1.2290
+ description FED_RVP_WIFI_DC2-B1_Gi0/7/1/3_1G
+ vrf member RVP_WIFI
+interface Gi5/1.2087
+ description FED_ADMIN_DC2-B1_Gi0/7/1/3_1G
+interface Gi5/1.2190
+ description FED_RDS_DC2-B1_Gi0/7/1/3_1G
+ vrf member RDS
+!
+!
+end
+copy running-config startup-config 
+
+
+!******************************************************** 
+ SCH-A10: Checks 
+!******************************************************** 
+!Check if the BFD feature is enable
+show feature | include bfd
+!
+!##################################################################################### 
+! Step 2 Rollout Standardisation :SCH-A10
+!#################################################################################### 
+!
+!--------------------------------------------------------
+!SCH-A10: interface Standardisation:
+!--------------------------------------------------------
+!
+! ==> Note: BFD is not supported Vlan: All Vlan interface must be deleted and recreated as sub interfaces
+!
+! interface Ten or GigabitEthernet
+!
+! a) Check the description format: FED_<VRF NAME>_<CE NAME>_SxPx_BW_TELCO_NUMBER
+! B) If TElco Link add: dampening 
+! C) If not native speed: bandwidth x00000
+! C) logging event link-status
+! D) Check the correct WRR
+!
+!sub-interface Ten or GigabitEthernet.wxyz
+!
+! a) Check the description format: FED_<VRF NAME>_<CE NAME>_SxPx_BW
+! B) Add if missIN ing: no ip redirects,no ip unreachables, no ip proxy-arp
+! C) Add BFD: bfd  interval 500 min_rx 500 multiplier 3 /!\ for Etherchannels: bfd interval 750 min_rx 750 multiplier 3
+!
+interface Gi5/1
+ !
+!
+interface Gi5/1.2801
+ no ip redirects 
+ no ip unreachables 
+ no ip proxy-arp 
+ bfd interval 500 min_rx 500 multiplier 3
+!
+interface Gi5/1.2303
+ no ip redirects 
+ no ip unreachables 
+ no ip proxy-arp 
+ bfd interval 500 min_rx 500 multiplier 3
+!
+interface Gi5/1.2290
+ no ip redirects 
+ no ip unreachables 
+ no ip proxy-arp 
+ bfd interval 500 min_rx 500 multiplier 3
+!
+interface Gi5/1.2087
+ no ip redirects 
+ no ip unreachables 
+ no ip proxy-arp 
+ bfd interval 500 min_rx 500 multiplier 3
+!
+interface Gi5/1.2190
+ no ip redirects 
+ no ip unreachables 
+ no ip proxy-arp 
+ bfd interval 500 min_rx 500 multiplier 3
+!
+!
+!--------------------------------------------------------
+! SCH-A10: Update all the eBGP peers eBGP
+!--------------------------------------------------------
+!
+! a) Check the description format: eBGP <PE name>_<VRF name>>
+! B) Add if missing: neighbor <PE IP@> fall-over bfd
+! C) Delete route-maps set metrics when possible /!\ to be confirmed with HSG\MBS
+! D) Add the per neighbor route-maps for plan selection Option 1 (without static Metric) or Option 2 (static Metrics)
+!
+router bgp 64923
+!
+vrf RVP_SHAREDSERVICES
+address-family ipv4 unicast
+neighbors 192.2.246.93 remote-as 64911 
+bfd
+description RVP_SHAREDSERVICES_DC2-B1
+!
+router bgp 64923
+!
+vrf RVP_ITEC
+address-family ipv4 unicast
+neighbors 192.2.181.42 remote-as 64911 
+bfd
+description RVP_ITEC_DC2-B1
+!
+router bgp 64923
+!
+vrf RVP_WIFI
+address-family ipv4 unicast
+neighbors 192.2.197.105 remote-as 64911 
+bfd
+description RVP_WIFI_DC2-B1
+!
+router bgp 64923
+!
+vrf RDS
+address-family ipv4 unicast
+neighbors 192.2.33.74 remote-as 64911 
+bfd
+description RDS_DC2-B1
+!
+! 
+
+   
+ 
+### The neibhor description is not as per standard #### 
+
+!--------------------------------------------------------
+! SCH-A10: Update all the eBGP peers eBGP
+!--------------------------------------------------------
+!#####################################################################################
+! Step 4 Rollout PE-CE IN interconnection reactivation
+! ####################################################################################
+!
+!--------------------------------------------------------	 
+!  SCH-A10: Enable the PE<=>CE interface
+!--------------------------------------------------------
+!	
+!	 
+interface Gi5/1
+ no shutdown
+!
+interface Gi5/1.2801
+ no shutdown
+!
+interface Gi5/1.2303
+ no shutdown
+!
+interface Gi5/1.2290
+ no shutdown
+!
+interface Gi5/1.2087
+ no shutdown
+!
+interface Gi5/1.2190
+ no shutdown
+!
+! 
+copy running config startup-config
+#######################################################################
+# Post Checks CE SCH-A10
+####################################################################### 
+
+!
+sh int status | in Gi5/1
+!
+show interfaces Gi5/1 | in error
+!
+ 
+sh bgp vrf all summary | in 192.2.246.93
+!
+ 
+sh bgp vrf all summary | in 192.2.181.42
+!
+ 
+sh bgp vrf all summary | in 192.2.197.105
+!
+ 
+ 
+sh bgp vrf all summary | in 192.2.33.74
+!
+!
+!

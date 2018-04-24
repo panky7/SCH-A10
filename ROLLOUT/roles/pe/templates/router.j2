@@ -1,0 +1,301 @@
+!--------------------------------------------------------	 
+!PRE-Check {{item.hostname}}: Step 0 Capture the O/P of the below commands for comparison after the change
+!--------------------------------------------------------	
+!
+show ip int brief | in {{item.main_interface}}
+!
+show interfaces {{item.main_interface}} | in errors
+!
+{% for int, cfd in item.sub_int.items() %} 
+{% if cfd.nei is defined %}
+sh bgp vrf all summary | in {{ cfd.nei }}
+!
+{% endif %}
+{% endfor %}
+!
+!
+!
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.nei is defined %}
+
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} routes 
+!
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} routes | in Processed
+!
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} advertised-routes
+!
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} advertised-count
+{% endif %}
+{% endfor %}
+!
+!#####################################################################################	 
+!Step 1A Rollout:{{item.hostname}} => change the description of  sub-interfaces for {{item.CE}}
+!####################################################################################	 
+!
+!
+interface {{item.main_interface}}
+ description FED_{{item.CE}}_{{item.CE_interface}}_{{item.speed}}
+!
+{% for int, cfd in item.sub_int.items() %}
+interface {{ int }}
+{% if cfd.vrf is defined %}
+ description FED_{{ cfd.vrf }}_{{item.CE}}_{{item.CE_interface}}_{{item.speed}}
+{% else %}
+ description FED_{{item.CE}}_{{item.CE_interface}}_{{item.speed}}
+{% endif %}
+{% endfor %}
+!
+!
+commit comment JUMP-TICKET:Interface Description
+!
+!--------------------------------------------------------	 
+!{{item.hostname}} Shut down the BGP peerings and change the description for all the peers with VRF 
+!--------------------------------------------------------
+!
+router bgp 64911
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.nei is defined %}
+!
+vrf {{ cfd.vrf }}
+neighbors {{ cfd.nei }}
+description {{ cfd.vrf }}_{{item.CE}}
+bfd fast-detect
+bfd multiplier 3
+bfd minimim-interval 500
+shutdown
+!
+{% endif %}
+{% endfor %}
+!
+commit comment JUMP-TICKET:BGP Description
+!
+!--------------------------------------------------------
+!{{item.hostname}}: Shutdown the PE<=>CE  interface
+!--------------------------------------------------------
+!
+interface {{item.main_interface}}
+shutdown
+!
+{% for int, cfd in item.sub_int.items() %}
+interface {{ int }}
+shutdown
+!
+{% endfor %}
+!
+commit comment JUMP-TICKET: Interface shutdown
+!********************************************************	   
+!Checks-{{item.hostname}}	   
+!********************************************************
+
+!
+show ip int brief | in {{item.main_interface}}
+!
+show interfaces {{item.main_interface}} | in errors
+!
+{% for int, cfd in item.sub_int.items() %} 
+{% if cfd.nei is defined %}
+sh bgp vrf all summary | in {{ cfd.nei }}
+!
+{% endif %}
+{% endfor %}
+!
+!==> Quick Double-check that neighbors are down
+!
+!
+! ==> Note: BFD is not supported Vlan: All Vlan interface must be deleted and recreated as sub interfaces
+!
+! interface Ten or GigabitEthernet
+!
+! a) Check the description format: FED_<VRF NAME>_<CE NAME>_SxPx_BW_TELCO_NUMBER
+! B) If TElco Link add: dampening 
+! C) If not native speed: bandwidth x00000
+! C) logging event link-status
+! D) Check the correct WRR
+!
+!sub-interface Ten or GigabitEthernet.wxyz
+!
+! a) Check the description format: FED_<VRF NAME>_<CE NAME>_SxPx_BW
+! B) Add if missIN ing: no ip redirects,no ip unreachables, no ip proxy-arp
+! C) Add BFD: bfd  interval 500 min_rx 500 multiplier 3 /!\ for Etherchannels: bfd interval 750 min_rx 750 multiplier 3
+!
+!#####################################################################################
+! Step 3 Rollout Standardisation :{{item.hostname}}
+! ####################################################################################
+!	 
+!
+!--------------------------------------------------------
+! {{item.hostname}}: interface Standardisation:
+!--------------------------------------------------------
+!
+interface {{item.main_interface}}
+ service-policy input 1GE_PMAP_IN 
+ service-policy output 1GE_PMAP_OUT
+!
+{% for int, cfd in item.sub_int.items() %}
+interface {{ int }}
+service-policy input 1GE_PMAP_IN 
+service-policy output 1GE_PMAP_OUT 
+ipv4 unreachables disable
+!
+{% endfor %}
+!
+commit comment JUMP-TICKET: Interface standarization
+!
+!--------------------------------------------------------
+! {{item.hostname}} eBGP with RED or BLUE Plan + BFD (Option 1 without static Metrics) and remove the existing route-maps if any
+!--------------------------------------------------------
+!
+!
+{% if "RED" in item.BACKBONE %}
+route-policy eBGP:RED-PLAN-FROM-AS{{item.remote_as}}:IN 
+ pass
+# Empty to be used for manual switchover
+end-policy
+!
+!
+extcommunity-set rt comm_96
+  {{item.remote_as}}:9999
+end-set
+!
+route-policy eBGP:RED-PLAN-TO-AS{{item.remote_as}}:OUT
+  if (extcommunity rt matches-any comm_96) then
+    prepend as-path 64911 5
+  else
+   pass
+  endif
+end-policy
+!
+!
+router bgp 64911
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.nei is defined %}
+vrf {{ cfd.vrf }}
+neighbors {{ cfd.nei }}
+address-family ipv4 unicast
+route-policy eBGP:RED-PLAN-from-AS6{{item.remote_as}}:IN in
+route-policy eBGP:RED-PLAN-to-AS{{item.remote_as}}:OUT out
+!
+{% endif %}
+{% endfor %}
+{% endif %}
+!
+!
+{% if "BLUE" in item.BACKBONE %}
+route-policy eBGP:BLUE-PLAN-FROM-AS{{item.remote_as}}:IN 
+ pass
+# Empty to be used for manual switchover
+end-policy
+!
+!
+extcommunity-set rt comm_69
+  {{item.remote_as}}:6666
+end-set
+!
+route-policy eBGP:BLUE-PLAN-TO-AS{{item.remote_as}}:OUT
+  if (extcommunity rt matches-any comm_96) then
+    prepend as-path 64911 5
+  else
+   pass
+  endif
+end-policy
+!
+!
+router bgp 64911
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.nei is defined %}
+vrf {{ cfd.vrf }}
+neighbors {{ cfd.nei }}
+address-family ipv4 unicast
+route-policy eBGP:BLUE-PLAN-from-AS{{item.remote_as}}:IN in
+route-policy eBGP:BLUE-PLAN-to-AS{{item.remote_as}}:OUT out
+!
+{% endif %}
+{% endfor %}
+{% endif %}
+commit comment JUMP-TICKET:BGP Standarization
+!
+!#####################################################################################
+! Step 4 Rollout PE-CE IN interconnection reactivation
+!####################################################################################
+!
+!--------------------------------------------------------	 
+! {{item.hostname}}: Enable the PE<=>CE interface
+!--------------------------------------------------------
+!	 
+interface {{item.main_interface}}
+ no shutdown
+!
+{% for int, cfd in item.sub_int.items() %}
+interface {{ int }}
+ no shutdown
+!
+{% endfor %}
+!
+commit Jump Ticket: No shutdown Interface
+! 
+!********************************************************	 
+!Checks {{item.hostname}}
+!********************************************************	
+!
+!
+show ip int brief | in {{item.main_interface}}
+!
+show interfaces {{item.main_interface}} | in errors
+!
+!--------------------------------------------------------	 
+!{{item.hostname}}: Enable all eBGPS peerings for all the interconnections' VRF
+!--------------------------------------------------------	 
+!
+!
+router bgp 64911
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.nei is defined %}
+vrf {{ cfd.vrf }}
+neighbors {{ cfd.nei }}
+no shutdown
+!
+{% endif %}
+{% endfor %}
+!
+commit comment JUMP-TICKET:BGP no-shutdown
+!
+!********************************************************	 
+!Post Checks PE {{item.hostname}}
+!********************************************************	 
+!	 
+!
+!==> Quick Double-check no error on the interfaces 
+!
+!
+show ip int brief | in {{item.main_interface}}
+!
+show interfaces {{item.main_interface}} | in errors
+!
+{% for int, cfd in item.sub_int.items() %} 
+{% if cfd.nei is defined %}
+sh bgp vrf all summary | in {{ cfd.nei }}
+!
+{% endif %}
+{% endfor %}
+!
+!
+!
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.nei is defined %}
+
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} routes 
+!
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} routes | in Processed
+!
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} advertised-routes
+!
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} advertised-count
+{% endif %}
+{% endfor %}
+!

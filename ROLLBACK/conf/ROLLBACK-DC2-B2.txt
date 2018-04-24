@@ -1,0 +1,81 @@
+!#####################################################################################	   
+! Rollback:	   /!\ à mettre dans un ficher distinct dans la section rollback de la DMEP .doc
+!####################################################################################	   
+!	   
+!--------------------------------------------------------	   
+! Step 1 DC2-B2: Rollback Peerings BGP and Interfacy policy map on all Interconexion	   
+!--------------------------------------------------------
+
+show configuration commit list detail | utility egrep 'Comment:  JUMP-Ticket:Interface Description' -B 4
+
+! Find the rollback ID from the last command
+
+show configuration commit changes <commit-id>
+
+! It will show the configuration of Interface description change
+! If that is the case do the rollback with the commit ID
+
+rollback configuration <commit-id> comment JUMP-Ticket:rollback
+
+!********************************************************	   
+Checks DC2-B2
+!********************************************************	   
+!
+!
+show ip int brief | in Gi0/7/1/3
+!
+show interfaces Gi0/7/1/3 | in errors
+!
+ 
+sh bgp vrf all summary | in 192.2.181.41
+!
+ 
+sh bgp vrf all summary | in 192.2.246.94
+!
+ 
+sh bgp vrf all summary | in 192.2.33.73
+!
+ 
+ 
+sh bgp vrf all summary | in 192.2.197.106
+!
+!
+!
+!
+!
+
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 routes 
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 routes | in Processed
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 advertised-routes
+!
+sh bgp vrf RVP_ITEC neighbors 192.2.181.41 advertised-count
+
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 routes 
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 routes | in Processed
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 advertised-routes
+!
+sh bgp vrf RVP_SHAREDSERVICES neighbors 192.2.246.94 advertised-count
+
+sh bgp vrf RDS neighbors 192.2.33.73 routes 
+!
+sh bgp vrf RDS neighbors 192.2.33.73 routes | in Processed
+!
+sh bgp vrf RDS neighbors 192.2.33.73 advertised-routes
+!
+sh bgp vrf RDS neighbors 192.2.33.73 advertised-count
+
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 routes 
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 routes | in Processed
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 advertised-routes
+!
+sh bgp vrf RVP_WIFI neighbors 192.2.197.106 advertised-count
+!
+!
+
+

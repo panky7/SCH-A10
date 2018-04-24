@@ -1,0 +1,56 @@
+---
+routers: 
+   - hostname: DC2-B1
+     main_interface: Gi0/7/1/5
+     sub_int:
+       Gi0/7/1/5.2077:
+       Gi0/7/1/5.2177:
+         vrf: RDS
+         nei: 192.2.31.65
+       Gi0/7/1/5.2277:
+         vrf: RIX
+         nei: 192.2.21.65
+       Gi0/7/1/5.2449:
+         vrf: RVP_SURETE
+         nei: 192.2.172.37
+       Gi0/7/1/5.2477:
+         vrf: RVP_GTB
+         nei: 192.2.141.65
+       Gi0/7/1/5.2577:
+         vrf: RVP_WIFI
+         nei: 192.2.197.74
+       Gi0/7/1/5.2802:
+         vrf: RVP_SHAREDSERVICES
+         nei: 192.2.248.190
+       Gi0/7/1/5.3252:
+         vrf: RVP_LEGACYSURETE
+         nei: 192.2.39.22
+       Gi0/7/1/5.3377:
+         vrf: RVP_ITEC
+         nei: 192.2.181.65   
+     remote_as: 64912
+     CE: CAP-A10
+     CE_interface: Gi5/9
+     speed: 1G
+     BACKBONE: RED
+   - hostname: DC2-B2
+     main_interface: Gi0/7/1/3
+     sub_int:
+        Gi0/7/1/3.2087:
+        Gi0/7/1/3.2190:
+          vrf: RDS
+          nei: 192.2.33.73
+        Gi0/7/1/3.2290:
+          vrf: RVP_WIFI
+          nei: 192.2.197.106
+        Gi0/7/1/3.2303:
+          vrf: RVP_ITEC 
+          nei: 192.2.181.41  
+        Gi0/7/1/3.2801:
+          vrf: RVP_SHAREDSERVICES 
+          nei: 192.2.246.94
+     remote_as: 64912
+     CE: DC2RTRWEBCELLA2-P1
+     CE_interface: Eth1/1
+     speed: 10G
+     BACKBONE: RED

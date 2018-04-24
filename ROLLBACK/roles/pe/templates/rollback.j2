@@ -1,0 +1,54 @@
+!#####################################################################################	   
+! Rollback:	   /!\ à mettre dans un ficher distinct dans la section rollback de la DMEP .doc
+!####################################################################################	   
+!	   
+!--------------------------------------------------------	   
+! Step 1 {{item.hostname}}: Rollback Peerings BGP and Interfacy policy map on all Interconexion	   
+!--------------------------------------------------------
+
+show configuration commit list detail | utility egrep 'Comment:  JUMP-Ticket:Interface Description' -B 4
+
+! Find the rollback ID from the last command
+
+show configuration commit changes <commit-id>
+
+! It will show the configuration of Interface description change
+! If that is the case do the rollback with the commit ID
+
+rollback configuration <commit-id> comment JUMP-Ticket:rollback
+
+!********************************************************	   
+Checks {{item.hostname}}
+!********************************************************	   
+!
+!
+show ip int brief | in {{item.main_interface}}
+!
+show interfaces {{item.main_interface}} | in errors
+!
+{% for int, cfd in item.sub_int.items() %} 
+{% if cfd.nei is defined %}
+sh bgp vrf all summary | in {{ cfd.nei }}
+!
+{% endif %}
+{% endfor %}
+!
+!
+!
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.nei is defined %}
+
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} routes 
+!
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} routes | in Processed
+!
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} advertised-routes
+!
+sh bgp vrf {{ cfd.vrf }} neighbors {{ cfd.nei }} advertised-count
+{% endif %}
+{% endfor %}
+!
+!
+
+

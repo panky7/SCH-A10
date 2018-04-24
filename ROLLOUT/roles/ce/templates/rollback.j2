@@ -1,0 +1,89 @@
+!--------------------------------------------------------	   
+! {{item.hostname}}: Rollback interfaces Configuration
+!--------------------------------------------------------
+!-------------------------------------------------------- 
+! {{item.hostname}}: Shutdown the PE<=>CE interface 
+!-------------------------------------------------------- 
+{% if item.sub_int.vlan is defined %}
+no interface {{item.main_interface}}
+{% else %}
+interface {{item.main_interface}}
+shutdown
+{% endif %}
+ !
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.vlan is defined %}
+no interface {{ int }}
+{% else %}
+interface {{ int }}
+shutdown
+!
+{% endif %}
+{% endfor %}
+
+!******************************************************** 
+ {{item.hostname}}: Rollback interface configuration
+!******************************************************** 
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.vlan is defined %}
+interface {{item.main_interface}}
+description FED_SC2-A1_Te0/0/0/8_10G
+switchport
+switchport mode trunk
+switchport trunk native vlan 999
+switchport trunk allowed vlan add {{ cfd.vlan }}
+logging event port link-status
+logging event port trunk-status
+{% endif %}
+interface vlan {{ cfd.vlan }}
+{% if cfd.vrf is defined %}
+ description FED_{{ cfd.vrf }}_SC2-A1_Te0/0/0/8_10G
+ vrf member {{ cfd.vrf }}
+{% else %}
+ description FED_ADMIN_SC2-A1_Te0/0/0/8_10G
+{% endif %}
+bfd interval 500 min_rx 500 multiplier 3
+logging event port link-status
+no ip redirects
+ip address {{ cfd.ip }}
+no ipv6 redirects
+{% endfor %}
+
+
+!-------------------------------------------------------- 
+! {{item.hostname}}: no Shutdown the PE<=>CE interface 
+!-------------------------------------------------------- 
+
+interface {{item.main_interface}}
+no shutdown
+ !
+!
+{% for int, cfd in item.sub_int.items() %}
+{% if cfd.vlan is defined %}
+interface vlan {{ cfd.vlan }}
+no shutdown
+{% else %}
+interface {{ int }}
+no shutdown
+!
+{% endif %}
+{% endfor %}
+
+!--------------------------------------------------------	 
+!POST-Check {{item.hostname}}: Capture the O/P of the below commands for comparison after the rollback
+!--------------------------------------------------------
+!
+sh int status | in {{item.main_interface}}
+!
+show interfaces {{item.main_interface}} | in error
+!
+{% for int, cfd in item.sub_int.items() %} 
+{% if cfd.nei is defined %}
+sh bgp vrf all summary | in {{ cfd.nei }}
+!
+{% endif %}
+{% endfor %}
+!
+
+

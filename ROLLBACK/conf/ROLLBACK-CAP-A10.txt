@@ -1,0 +1,112 @@
+!--------------------------------------------------------	   
+! CAP-A10: Rollback interfaces Configuration
+!--------------------------------------------------------
+!-------------------------------------------------------- 
+! CAP-A10: Shutdown the PE<=>CE interface 
+!-------------------------------------------------------- 
+!
+interface Gi5/9.2477
+shutdown
+!
+interface Gi5/9.2449
+shutdown
+!
+interface Gi5/9.3252
+shutdown
+!
+interface Gi5/9.3377
+shutdown
+!
+interface Gi5/9.2802
+shutdown
+!
+interface Gi5/9.2177
+shutdown
+!
+interface Gi5/9.2277
+shutdown
+!
+interface Gi5/9.2577
+shutdown
+!
+interface Gi5/9.2077
+shutdown
+!
+
+!******************************************************** 
+ CAP-A10: Rollback interface configuration
+!******************************************************** 
+
+
+!-------------------------------------------------------- 
+! CAP-A10: no Shutdown the PE<=>CE interface 
+!-------------------------------------------------------- 
+
+interface Gi5/9
+no shutdown
+ !
+!
+interface Gi5/9.2477
+no shutdown
+!
+interface Gi5/9.2449
+no shutdown
+!
+interface Gi5/9.3252
+no shutdown
+!
+interface Gi5/9.3377
+no shutdown
+!
+interface Gi5/9.2802
+no shutdown
+!
+interface Gi5/9.2177
+no shutdown
+!
+interface Gi5/9.2277
+no shutdown
+!
+interface Gi5/9.2577
+no shutdown
+!
+interface Gi5/9.2077
+no shutdown
+!
+
+!--------------------------------------------------------	 
+!POST-Check CAP-A10: Capture the O/P of the below commands for comparison after the rollback
+!--------------------------------------------------------
+!
+sh int status | in Gi5/9
+!
+show interfaces Gi5/9 | in error
+!
+ 
+sh bgp vrf all summary | in 192.2.141.66
+!
+ 
+sh bgp vrf all summary | in 192.2.172.38
+!
+ 
+sh bgp vrf all summary | in 192.2.39.21
+!
+ 
+sh bgp vrf all summary | in 192.2.181.66
+!
+ 
+sh bgp vrf all summary | in 192.2.248.189
+!
+ 
+sh bgp vrf all summary | in 192.2.31.66
+!
+ 
+sh bgp vrf all summary | in 192.2.21.66
+!
+ 
+sh bgp vrf all summary | in 192.2.197.73
+!
+ 
+!
+
+

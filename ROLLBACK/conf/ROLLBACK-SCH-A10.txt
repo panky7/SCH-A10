@@ -1,0 +1,76 @@
+!--------------------------------------------------------	   
+! SCH-A10: Rollback interfaces Configuration
+!--------------------------------------------------------
+!-------------------------------------------------------- 
+! SCH-A10: Shutdown the PE<=>CE interface 
+!-------------------------------------------------------- 
+!
+interface Gi5/1.2801
+shutdown
+!
+interface Gi5/1.2303
+shutdown
+!
+interface Gi5/1.2290
+shutdown
+!
+interface Gi5/1.2087
+shutdown
+!
+interface Gi5/1.2190
+shutdown
+!
+
+!******************************************************** 
+ SCH-A10: Rollback interface configuration
+!******************************************************** 
+
+
+!-------------------------------------------------------- 
+! SCH-A10: no Shutdown the PE<=>CE interface 
+!-------------------------------------------------------- 
+
+interface Gi5/1
+no shutdown
+ !
+!
+interface Gi5/1.2801
+no shutdown
+!
+interface Gi5/1.2303
+no shutdown
+!
+interface Gi5/1.2290
+no shutdown
+!
+interface Gi5/1.2087
+no shutdown
+!
+interface Gi5/1.2190
+no shutdown
+!
+
+!--------------------------------------------------------	 
+!POST-Check SCH-A10: Capture the O/P of the below commands for comparison after the rollback
+!--------------------------------------------------------
+!
+sh int status | in Gi5/1
+!
+show interfaces Gi5/1 | in error
+!
+ 
+sh bgp vrf all summary | in 192.2.246.93
+!
+ 
+sh bgp vrf all summary | in 192.2.181.42
+!
+ 
+sh bgp vrf all summary | in 192.2.197.105
+!
+ 
+ 
+sh bgp vrf all summary | in 192.2.33.74
+!
+!
+
+

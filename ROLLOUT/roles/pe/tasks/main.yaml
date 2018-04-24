@@ -1,0 +1,7 @@
+---
+- name: Generate configuration files
+  template: src=router.j2 dest=/Users/JANINE/SCH-A10/ROLLOUT/conf/ROLLOUT-{{item.hostname}}.txt
+  with_items: "{{ routers }}"
+   
+
+

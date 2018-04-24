@@ -1,0 +1,9 @@
+---
+- name: Generate Router Configuration Files 
+  hosts: localhost
+
+  roles: 
+   - pe
+   - ce
+
+
